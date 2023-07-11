@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"github.com/OkDenAl/mbtiles_converter/config"
 	"github.com/OkDenAl/mbtiles_converter/pkg/logging"
+	pg_geo_table_generator "github.com/OkDenAl/mbtiles_converter/pkg/pg-geo-table-generator"
+	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
 )
 
 func main() {
@@ -16,5 +18,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(cfg)
+	pool, err := postgres.New(cfg.DSN, 5, log)
+	if err != nil {
+		log.Fatal(err)
+	}
+	generator := pg_geo_table_generator.New(pg_geo_table_generator.NewRepo(pool))
+	bords := pg_geo_table_generator.Borders{MinX: 37.0471, MaxX: 38.1495, MinY: 55.4652, MaxY: 55.9871}
+	err = generator.Generate(context.Background(), bords, 10)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("done")
 }

@@ -68,13 +68,10 @@ func (f *Feature) VTileFeature(ctx context.Context, keys []string, vals []interf
 	return tf, nil
 }
 
-// These values came from: https://github.com/mapbox/vector-tile-spec/tree/master/2.1
 const (
 	cmdMoveTo    uint32 = 1
 	cmdLineTo    uint32 = 2
 	cmdClosePath uint32 = 7
-
-	maxCmdCount uint32 = 0x1FFFFFFF
 )
 
 type Command uint32
@@ -92,8 +89,6 @@ func encodeZigZag(i int64) uint32 {
 // cursor reprsents the current position, this is needed to encode the geometry.
 // the origin (0,0) is the top-left of the Tile.
 type cursor struct {
-	// The coordinates — these should be int64, when they were float64 they
-	// introduced a slight drift in the coordinates.
 	x int64
 	y int64
 }

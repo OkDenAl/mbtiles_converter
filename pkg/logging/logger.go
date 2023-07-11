@@ -44,10 +44,6 @@ func (wh *writeHook) Fire(entry *logrus.Entry) error {
 	return err
 }
 
-type logger struct {
-	*logrus.Logger
-}
-
 func Init() Logger {
 	l := logrus.New()
 	l.SetReportCaller(true)
@@ -66,7 +62,7 @@ func Init() Logger {
 	if err != nil {
 		l.Fatal(err)
 	}
-	f.Write([]byte("\n"))
+	_, _ = f.Write([]byte("\n"))
 	l.AddHook(&writeHook{
 		writers:   []io.Writer{f},
 		logLevels: logrus.AllLevels,

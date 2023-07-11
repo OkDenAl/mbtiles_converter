@@ -1,0 +1,23 @@
+version: "3.9"
+
+volumes:
+  db-volume:
+
+services:
+  pg:
+    image: postgres
+    container_name: pg
+    restart: always
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+  converter:
+    depends_on:
+      - pg
+    container_name: converter
+    build: .
+    volumes:
+      - ./logs:/app/logs

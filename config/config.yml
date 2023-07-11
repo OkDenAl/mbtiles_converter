@@ -1,6 +1,6 @@
 out_filename_prefix: map_
 
 db:
-  dsn: postgres://test:test@pg:5432/geo
+  dsn: postgres://mbtiles:mbtiles@pg:5432/geo
   count_to_convert: 10
 
