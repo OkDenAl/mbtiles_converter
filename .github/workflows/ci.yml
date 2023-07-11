@@ -1,16 +1,37 @@
-name: Ci
+name: Go mbtiles converter
+
 on: [push]
+
 jobs:
-  golangci:
-    name: lint
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        work_dir:
+          - .
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
         with:
-          cache: false
-          go-version: "1.20"
-      - name: golangci-lint
+          go-version: 'stable'
+
+      - name: Build
+        working-directory: ${{ matrix.work_dir }}
+        run: |
+          go mod tidy
+          go build -v ./...
+
+      - name: Lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.53
+          version: latest
+          working-directory: ${{ matrix.work_dir }}
+
+      - name: Test
+        working-directory: ${{ matrix.work_dir }}
+        run: |
+          go mod tidy
+          go test -v -race -coverpkg=./... ./...

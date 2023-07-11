@@ -17,7 +17,7 @@ type tCase struct {
 func TestCoordCalc(t *testing.T) {
 	tests := []tCase{
 		{
-			name: "Moscow, zoom = 6", lon: 37.6156, lat: 55.7522, zoom: 8,
+			name: "Moscow, zoom = 6", lon: 37.6156, lat: 55.7522, zoom: 6,
 			expLon: float64(38), expLat: float64(20),
 		},
 		{
@@ -25,7 +25,7 @@ func TestCoordCalc(t *testing.T) {
 			expLon: float64(158462), expLat: float64(81951),
 		},
 		{
-			name: "Moscow, zoom = 18", lon: 144.963, lat: -37.814, zoom: 6,
+			name: "Australia city, zoom = 6", lon: 144.963, lat: -37.814, zoom: 6,
 			expLon: float64(57), expLat: float64(39),
 		},
 	}
