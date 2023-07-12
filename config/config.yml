@@ -1,4 +1,6 @@
-out_filename_prefix: map_
+out_filename_prefix: map
+
+need_to_generate_data: false
 
 db:
   dsn: postgres://mbtiles:mbtiles@pg:5432/geo

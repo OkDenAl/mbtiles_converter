@@ -7,8 +7,9 @@ import (
 
 type (
 	Config struct {
-		DB                `yaml:"db"`
-		OutFilenamePrefix string `yaml:"out_filename_prefix"`
+		DB                 `yaml:"db"`
+		OutFilenamePrefix  string `yaml:"out_filename_prefix"`
+		NeedToGenerateData bool   `yaml:"need_to_generate_data"`
 	}
 	DB struct {
 		DSN            string `yaml:"dsn"`

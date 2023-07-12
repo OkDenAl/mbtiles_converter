@@ -1,18 +1,19 @@
 package main
 
 import (
-	"context"
+	"database/sql"
+	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/config"
+	"github.com/OkDenAl/mbtiles_converter/internal/repository/pg"
+	"github.com/OkDenAl/mbtiles_converter/internal/repository/sqlite"
+	"github.com/OkDenAl/mbtiles_converter/internal/service"
 	"github.com/OkDenAl/mbtiles_converter/pkg/logging"
-	pg_geo_table_generator "github.com/OkDenAl/mbtiles_converter/pkg/pg-geo-table-generator"
+	"github.com/OkDenAl/mbtiles_converter/pkg/pg_geo_table_generator"
 	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
+	"time"
 )
 
 func main() {
-	//dsn := flag.String("dsn", "", "dsn for postgres")
-	//filenamePref := flag.String("f", "map_", "prefix for output .mbtiles file")
-	//countToConvert := flag.Int("c", 10, "number of rows in the postgres bd to be converted")
-	//cfg := config.Config{DB: config.DB{DSN: *dsn, CountToConvert: *countToConvert}, OutFilenamePrefix: *filenamePref}
 	log := logging.Init()
 	cfg, err := config.New()
 	if err != nil {
@@ -22,11 +23,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	generator := pg_geo_table_generator.New(pg_geo_table_generator.NewRepo(pool))
-	bords := pg_geo_table_generator.Borders{MinX: 37.0471, MaxX: 38.1495, MinY: 55.4652, MaxY: 55.9871}
-	err = generator.Generate(context.Background(), bords, 10)
+	defer pool.Close()
+
+	if cfg.NeedToGenerateData {
+		err = pg_geo_table_generator.Run(pool)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	sqliteFilename := fmt.Sprintf("%s_%s.mbtiles", cfg.OutFilenamePrefix, time.Now().String())
+	db, err := sql.Open("sqlite3", sqliteFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
+	converter := service.NewConverter(pg.NewRepo(pool), sqlite.NewRepo(db))
 	log.Info("done")
 }

@@ -2,9 +2,8 @@ package pg_geo_table_generator
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-const maxAvailableAmount = 1000
 
 type Borders struct {
 	MinX float64
@@ -21,7 +20,7 @@ type geoGenerator struct {
 	repo Repository
 }
 
-func New(repo Repository) GeoDBGenerator {
+func NewGenerator(repo Repository) GeoDBGenerator {
 	return &geoGenerator{repo: repo}
 }
 
@@ -34,4 +33,9 @@ func (g *geoGenerator) Generate(ctx context.Context, bord Borders, amount int) e
 		amount = maxAvailableAmount
 	}
 	return g.repo.FillTable(ctx, bord, amount)
+}
+
+func Run(pool *pgxpool.Pool) error {
+	generator := NewGenerator(NewRepo(pool))
+	return generator.Generate(context.Background(), MoscowSquareBorders, 1000)
 }
