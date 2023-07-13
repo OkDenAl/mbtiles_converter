@@ -47,7 +47,7 @@ func NewFeatures(geo geom.Geometry, tags map[string]interface{}) (f []Feature) {
 // VTileFeature will return a vectorTile.Feature that would represent the Feature
 func (f *Feature) VTileFeature(ctx context.Context, keys []string, vals []interface{}) (tf *vectorTile.Tile_Feature, err error) {
 	tf = new(vectorTile.Tile_Feature)
-	tf.Id = *f.ID
+	tf.Id = 1
 
 	if tf.Tags, err = keyvalTagsMap(keys, vals, f); err != nil {
 		return tf, err
@@ -197,19 +197,6 @@ func (c *cursor) encodePolygon(geo geom.Polygon) []uint32 {
 			}
 			return g
 		}
-
-		// https://github.com/mapbox/vector-tile-spec/tree/master/2.1#4344-polygon-geometry-type
-		// An exterior ring is DEFINED as a linear ring having a positive area
-		// as calculated by applying the surveyor's formula to the vertices of
-		// the polygon in tile coordinates. In the tile coordinate system (with
-		// the Y axis positive down and X axis positive to the right) this makes
-		// the exterior ring's winding order appear clockwise.
-		//
-		// An interior ring is DEFINED as a linear ring having a negative area as
-		// calculated by applying the surveyor's formula to the vertices of the
-		// polygon in tile coordinates. In the tile coordinate system (with the
-		// Y axis positive down and X axis positive to the right) this makes the
-		// interior ring's winding order appear counterclockwise.
 		order := winding.Order{YPositiveDown: true}
 		wo := winding.CounterClockwise
 		if i == 0 {
@@ -314,7 +301,6 @@ func keyvalMapsFromFeatures(features []Feature) (keyMap []string, valMap []inter
 				keyMap = append(keyMap, k)
 			}
 			didFind = false
-			log.Println(k, v)
 			switch vt := v.(type) {
 			default:
 				if vt == nil {

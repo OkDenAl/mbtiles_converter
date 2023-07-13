@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	Version       uint32 = 2
-	DefaultExtent uint32 = 64
+	Version uint32 = 2
 )
 
 // Layer describes a layer within a tile.

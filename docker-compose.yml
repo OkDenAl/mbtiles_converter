@@ -21,3 +21,4 @@ services:
     build: .
     volumes:
       - ./logs:/app/logs
+      - ./mbtiles:/app/mbtiles

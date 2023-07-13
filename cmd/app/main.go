@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/config"
 	"github.com/OkDenAl/mbtiles_converter/internal/repository/pg"
 	"github.com/OkDenAl/mbtiles_converter/internal/repository/sqlite"
@@ -10,7 +10,7 @@ import (
 	"github.com/OkDenAl/mbtiles_converter/pkg/logging"
 	"github.com/OkDenAl/mbtiles_converter/pkg/pg_geo_table_generator"
 	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
-	"time"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -31,12 +31,16 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	sqliteFilename := fmt.Sprintf("%s_%s.mbtiles", cfg.OutFilenamePrefix, time.Now().String())
-	db, err := sql.Open("sqlite3", sqliteFilename)
+	//sqliteFilename := fmt.Sprintf("%s_%s.mbtiles", cfg.OutFilenamePrefix, time.Now().String())
+	db, err := sql.Open("sqlite3", "mbtiles/test.mbtiles")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 	converter := service.NewConverter(pg.NewRepo(pool), sqlite.NewRepo(db))
+	err = converter.Convert(context.Background(), cfg.CountToConvert)
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Info("done")
 }

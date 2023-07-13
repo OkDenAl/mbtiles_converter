@@ -5,3 +5,10 @@ type MapPoint struct {
 	Latitude  float64
 	Type      string
 }
+
+type MbtilesMapPoint struct {
+	TileRow   float64
+	TileCol   float64
+	ZoomLevel int
+	TileData  []byte
+}
