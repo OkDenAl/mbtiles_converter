@@ -4,3 +4,6 @@ start-db:
 
 stop-db:
 	docker compose down
+
+cover:
+	go test -v -coverpkg./... -coverprofile report.out -covermode=atomic./...

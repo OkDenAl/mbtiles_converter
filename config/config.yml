@@ -1,8 +1,14 @@
-out_filename_prefix: map
+out_filename_prefix: map # the prefix of your .mbtiles output file
 
-need_to_generate_data: false
+need_to_generate_data: false # if u need to generate random points to postgres use this
 
 db:
-  dsn: postgres://mbtiles:mbtiles@pg:5432/geo
-  count_to_convert: 10
+  dsn: postgres://mbtiles:mbtiles@pg:5432/geo # connection string to postgres bd with initial geo points
 
+converter_opts:
+  quantity_to_convert: 10 # amount of data to convert to .mbtiles format
+  start_zoom: 7 # start zoom from which geo objects will be visible
+  end_zoom: 12 # end zoom from which geo objects will be visible
+  converter_mode: 2 # mode of convertation (there are 2 modes: 1) with using map storage 2) without using map storage
+
+metadata:

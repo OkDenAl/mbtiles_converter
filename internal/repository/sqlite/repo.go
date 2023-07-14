@@ -9,8 +9,11 @@ import (
 )
 
 type Repository interface {
-	AddPoint(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error
+	AddTilesBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error
 	CreateTables(ctx context.Context) error
+	GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte, error)
+	AddTile(ctx context.Context, point entity.MbtilesMapPoint) error
+	UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint) error
 	FillMetadata(ctx context.Context, metadata entity.Metadata) error
 }
 
@@ -22,7 +25,7 @@ func NewRepo(conn *sql.DB) Repository {
 	return &repo{conn: conn}
 }
 
-func (r *repo) AddPoint(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error {
+func (r *repo) AddTilesBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error {
 	valueStrings := make([]string, 0, len(mbtilesPoints))
 	valueArgs := make([]interface{}, 0, len(mbtilesPoints)*4)
 	for i, point := range mbtilesPoints {
@@ -35,7 +38,7 @@ func (r *repo) AddPoint(ctx context.Context, mbtilesPoints []entity.MbtilesMapPo
 	}
 	stmt := fmt.Sprintf("INSERT INTO tiles (zoom_level, tile_column, tile_row , tile_data) VALUES %s",
 		strings.Join(valueStrings, ","))
-	_, err := r.conn.Exec(stmt, valueArgs...)
+	_, err := r.conn.ExecContext(ctx, stmt, valueArgs...)
 	return err
 }
 
@@ -44,18 +47,42 @@ func (r *repo) CreateTables(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
-	q := `CREATE TABLE metadata (name text, value text);`
+	defer func() { _ = tx.Rollback() }()
+	q := `CREATE TABLE IF NOT EXISTS metadata (name text, value text);`
 	_, err = tx.Exec(q)
 	if err != nil {
 		return err
 	}
-	q = `CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob);`
+	q = `CREATE TABLE IF NOT EXISTS tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob);`
 	_, err = tx.Exec(q)
+	q = `CREATE UNIQUE INDEX IF NOT EXISTS tile_index on tiles (zoom_level, tile_column, tile_row)`
 	if err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+func (r *repo) GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte, error) {
+	q := `SELECT tile_data FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3`
+	row := r.conn.QueryRowContext(ctx, q, tile.Zoom, tile.Column, tile.Row)
+	var tileData []byte
+	err := row.Scan(&tileData)
+	if err != nil {
+		return nil, err
+	}
+	return tileData, nil
+}
+
+func (r *repo) AddTile(ctx context.Context, point entity.MbtilesMapPoint) error {
+	q := `INSERT INTO tiles (zoom_level, tile_column, tile_row , tile_data) VALUES ($1,$2,$3,$4)`
+	_, err := r.conn.ExecContext(ctx, q, point.ZoomLevel, point.TileCol, point.TileRow, point.TileData)
+	return err
+}
+
+func (r *repo) UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint) error {
+	q := `UPDATE tiles SET tile_data = $1 WHERE zoom_level = $2 AND tile_column = $3 AND tile_row = $4`
+	_, err := r.conn.ExecContext(ctx, q, point.TileData, point.ZoomLevel, point.TileCol, point.TileRow)
+	return err
 }
 
 func (r *repo) FillMetadata(ctx context.Context, metadata entity.Metadata) error {

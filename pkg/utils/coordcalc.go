@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -22,16 +21,4 @@ func Lat2tileFloor(lat float64, zoom int) float64 {
 
 func Lat2tile(lat float64, zoom int) float64 {
 	return (1 - math.Log(math.Tan(lat*math.Pi/180)+1/math.Cos(lat*math.Pi/180))/math.Pi) / 2 * math.Pow(2, float64(zoom))
-}
-
-func PixelCoord(tileX, tileY float64, zoom int) {
-	mapSize := math.Pow(float64(2), float64(zoom))
-	tX := math.Trunc(tileX)
-	tY := math.Trunc(tileY)
-	fmt.Println(tX, tY, mapSize)
-	pixelX := (int((tX * mapSize) + (tileX-tX)*mapSize)) % int(mapSize-1)
-	pixelY := (int((tY * mapSize) + (tileY-tY)*256)) % int(mapSize-1)
-	fmt.Println(pixelX)
-	fmt.Println(pixelY)
-
 }

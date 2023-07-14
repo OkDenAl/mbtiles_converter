@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
-	"google.golang.org/protobuf/proto"
+	"github.com/go-spatial/geom/encoding/mvt"
+	"github.com/gogo/protobuf/proto"
 )
 
 const DefaultLayerName = "cities"
 
-func ConvertToMVT(coords [][2]float64, zoom int) ([]byte, error) {
+func EncodePixelCoordToGzipMVT(coords [][2]float64, zoom int) ([]byte, error) {
 	geo := geom.MultiPoint{}
 	err := geo.SetPoints(coords)
 	if err != nil {
@@ -26,6 +26,10 @@ func ConvertToMVT(coords [][2]float64, zoom int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	return EncodeTileToMVT(t)
+}
+
+func EncodeTileToMVT(t mvt.Tile) ([]byte, error) {
 	tile, err := t.VTile(context.Background())
 	if err != nil {
 		return nil, err
@@ -34,14 +38,13 @@ func ConvertToMVT(coords [][2]float64, zoom int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var gzipBuf bytes.Buffer
 
+	var gzipBuf bytes.Buffer
 	w := gzip.NewWriter(&gzipBuf)
 	_, err = w.Write(marshal)
 	if err != nil {
 		return nil, err
 	}
-
 	_ = w.Close()
 	return gzipBuf.Bytes(), nil
 }

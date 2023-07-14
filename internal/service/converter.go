@@ -2,15 +2,24 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"github.com/OkDenAl/mbtiles_converter/config"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/internal/repository/pg"
 	"github.com/OkDenAl/mbtiles_converter/internal/repository/sqlite"
 	"github.com/OkDenAl/mbtiles_converter/pkg/utils"
+	"github.com/go-spatial/geom"
+	"github.com/go-spatial/geom/encoding/mvt"
 	"math"
 )
 
+var (
+	ErrInvalidConvertMode = errors.New("invalid convert mode")
+)
+
 type Converter interface {
-	Convert(ctx context.Context, n int) error
+	Convert(ctx context.Context, opts config.ConverterOpts) error
 }
 
 type converter struct {
@@ -22,39 +31,96 @@ func NewConverter(pgRepo pg.Repository, sqliteRepo sqlite.Repository) Converter 
 	return &converter{pgRepo: pgRepo, sqliteRepo: sqliteRepo}
 }
 
-func (c *converter) Convert(ctx context.Context, n int) error {
-	points, err := c.pgRepo.GetFirstNElements(ctx, n)
-	if err != nil {
-		return err
-	}
-	startZoom := 7
-	endZoom := 12
-	tiles := make(map[[3]int][][2]float64, 0)
+func (c *converter) convertUsingMap(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
+	tiles := make(map[entity.TileCoords][][2]float64, 0)
 	mbtilesPoints := make([]entity.MbtilesMapPoint, 0)
 	for _, point := range points {
-		for i := startZoom; i < endZoom; i++ {
-			tileColumn := utils.Lon2tileFloor(point.Longitude, i)
-			tileRow := utils.Lat2tileFloor(point.Latitude, i)
-			tileSize := 1 << i
-			x := math.Round((tileColumn - utils.Lon2tile(point.Longitude, i)) * float64(-tileSize))
-			y := math.Round((tileRow - utils.Lat2tile(point.Latitude, i)) * float64(-tileSize))
-			if _, ok := tiles[[3]int{int(tileColumn), int(tileRow), i}]; !ok {
-				tiles[[3]int{int(tileColumn), int(tileRow), i}] = make([][2]float64, 0)
+		for zoom := startZoom; zoom < endZoom; zoom++ {
+			tile := entity.TileCoords{
+				Column: utils.Lon2tileFloor(point.Longitude, zoom),
+				Row:    utils.Lat2tileFloor(point.Latitude, zoom),
+				Zoom:   zoom,
 			}
-			tiles[[3]int{int(tileColumn), int(tileRow), i}] = append(tiles[[3]int{int(tileColumn), int(tileRow), i}], [2]float64{x, y})
+			tileSize := 1 << zoom
+			x := math.Round((tile.Column - utils.Lon2tile(point.Longitude, zoom)) * float64(-tileSize))
+			y := math.Round((tile.Row - utils.Lat2tile(point.Latitude, zoom)) * float64(-tileSize))
+			if _, ok := tiles[tile]; !ok {
+				tiles[tile] = make([][2]float64, 0)
+			}
+			tiles[tile] = append(tiles[tile], [2]float64{x, y})
 		}
 	}
-	for k, val := range tiles {
-		gzipBuf, err := utils.ConvertToMVT(val, k[2])
+	for tile, val := range tiles {
+		gzipBuf, err := utils.EncodePixelCoordToGzipMVT(val, tile.Zoom)
 		if err != nil {
 			return err
 		}
-		mbtilesPoints = append(mbtilesPoints, entity.MbtilesMapPoint{TileCol: float64(k[0]),
-			TileRow: float64(k[1]), ZoomLevel: k[2], TileData: gzipBuf})
+		mbtilesPoints = append(mbtilesPoints, entity.MbtilesMapPoint{TileCol: tile.Column,
+			TileRow: tile.Row, ZoomLevel: tile.Zoom, TileData: gzipBuf})
 	}
-	err = c.sqliteRepo.AddPoint(ctx, mbtilesPoints)
+	err := c.sqliteRepo.AddTilesBatch(ctx, mbtilesPoints)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (c *converter) convertWithoutMap(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
+	for _, point := range points {
+		for zoom := startZoom; zoom < endZoom; zoom++ {
+			tile := entity.TileCoords{
+				Column: utils.Lon2tileFloor(point.Longitude, zoom),
+				Row:    utils.Lat2tileFloor(point.Latitude, zoom),
+				Zoom:   zoom,
+			}
+			tileSize := 1 << zoom
+			x := math.Round((tile.Column - utils.Lon2tile(point.Longitude, zoom)) * float64(-tileSize))
+			y := math.Round((tile.Row - utils.Lat2tile(point.Latitude, zoom)) * float64(-tileSize))
+
+			mbtilesPoint := entity.MbtilesMapPoint{TileCol: tile.Column, TileRow: tile.Row, ZoomLevel: tile.Zoom}
+			tileData, err := c.sqliteRepo.GetTileData(ctx, tile)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					mbtilesPoint.TileData, err = utils.EncodePixelCoordToGzipMVT([][2]float64{{x, y}}, tile.Zoom)
+					if err != nil {
+						return err
+					}
+					return c.sqliteRepo.AddTile(ctx, mbtilesPoint)
+				}
+				return err
+			}
+
+			decodedTile, err := utils.DecodeFromGzipMVT(tileData)
+			if err != nil {
+				return err
+			}
+			f := mvt.NewFeatures(geom.Point{x, y}, nil)
+			decodedTile.Layers()[0].AddFeatures(f...)
+			mbtilesPoint.TileData, err = utils.EncodeTileToMVT(*decodedTile)
+			if err != nil {
+				return err
+			}
+			err = c.sqliteRepo.UpdateTileData(ctx, mbtilesPoint)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts) error {
+	points, err := c.pgRepo.GetFirstNElements(ctx, opts.QantityToConvert)
+	if err != nil {
+		return err
+	}
+	switch opts.ConverterMode {
+	case 1:
+		err = c.convertUsingMap(ctx, points, opts.StartZoom, opts.StartZoom)
+	case 2:
+		err = c.convertWithoutMap(ctx, points, opts.StartZoom, opts.StartZoom)
+	default:
+		err = ErrInvalidConvertMode
+	}
+	return err
 }
