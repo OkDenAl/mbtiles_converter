@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
+	"log"
 	"strings"
 )
 
@@ -38,6 +39,7 @@ func (r *repo) AddTilesBatch(ctx context.Context, mbtilesPoints []entity.Mbtiles
 	}
 	stmt := fmt.Sprintf("INSERT INTO tiles (zoom_level, tile_column, tile_row , tile_data) VALUES %s",
 		strings.Join(valueStrings, ","))
+	log.Println(stmt)
 	_, err := r.conn.ExecContext(ctx, stmt, valueArgs...)
 	return err
 }
@@ -55,7 +57,11 @@ func (r *repo) CreateTables(ctx context.Context) error {
 	}
 	q = `CREATE TABLE IF NOT EXISTS tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob);`
 	_, err = tx.Exec(q)
+	if err != nil {
+		return err
+	}
 	q = `CREATE UNIQUE INDEX IF NOT EXISTS tile_index on tiles (zoom_level, tile_column, tile_row)`
+	_, err = tx.Exec(q)
 	if err != nil {
 		return err
 	}

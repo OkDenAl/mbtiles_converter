@@ -11,6 +11,7 @@ import (
 	"github.com/OkDenAl/mbtiles_converter/pkg/pg_geo_table_generator"
 	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
 	_ "github.com/mattn/go-sqlite3"
+	"time"
 )
 
 func main() {
@@ -19,6 +20,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Info(cfg)
 
 	log.Info("connecting to postgres...")
 	pool, err := postgres.New(cfg.DSN, 5, log)
@@ -29,10 +31,12 @@ func main() {
 	log.Info("successfully connected")
 
 	if cfg.NeedToGenerateData {
+		t := time.Now()
 		err = pg_geo_table_generator.Run(pool)
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Info(time.Since(t))
 	}
 
 	log.Info("connecting to sqlite...")
@@ -45,10 +49,12 @@ func main() {
 	log.Info("successfully connected")
 
 	log.Info("converting data...")
+	t := time.Now()
 	converter := service.NewConverter(pg.NewRepo(pool), sqlite.NewRepo(db))
 	err = converter.Convert(context.Background(), cfg.ConverterOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Info(time.Since(t))
 	log.Info("done")
 }

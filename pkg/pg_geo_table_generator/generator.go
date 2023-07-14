@@ -29,13 +29,13 @@ func (g *geoGenerator) Generate(ctx context.Context, bord Borders, amount int) e
 	if err != nil {
 		return err
 	}
-	if amount > maxAvailableAmount {
-		amount = maxAvailableAmount
-	}
+	//if amount > maxAvailableAmount {
+	//	amount = maxAvailableAmount
+	//}
 	return g.repo.FillTable(ctx, bord, amount)
 }
 
 func Run(pool *pgxpool.Pool) error {
 	generator := NewGenerator(NewRepo(pool))
-	return generator.Generate(context.Background(), MoscowSquareBorders, 1000)
+	return generator.Generate(context.Background(), MoscowSquareBorders, 10000)
 }

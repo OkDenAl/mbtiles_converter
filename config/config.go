@@ -26,10 +26,10 @@ type (
 		Json    string `yaml:"json"`
 	}
 	ConverterOpts struct {
-		QantityToConvert int `yaml:"count_to_convert"`
-		StartZoom        int `yaml:"start_zoom"`
-		EndZoom          int `yaml:"end_zoom"`
-		ConverterMode    int `yaml:"converter_mode"`
+		QuantityToConvert int `yaml:"quantity_to_convert"`
+		StartZoom         int `yaml:"start_zoom"`
+		EndZoom           int `yaml:"end_zoom"`
+		ConverterMode     int `yaml:"converter_mode"`
 	}
 )
 
