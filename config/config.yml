@@ -10,4 +10,11 @@ converter_opts:
   start_zoom: 7 # start zoom from which geo objects will be visible
   end_zoom: 12 # end zoom from which geo objects will be visible
 
+# read more https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md
 metadata:
+  name: Test # The human-readable name of the tileset
+  bounds: 37.0471, 55.4652, 38.1495, 55.9871 # The maximum extent of the rendered map area. Bounds must define an area covered by all zoom levels
+  center: 37.61030,55.75138,10 # The longitude, latitude, and zoom level of the default view of the map
+  type: overlay # overlay or baselayer
+  min_zoom: 0 # The lowest zoom level for which the tileset provides data
+  max_zoom: 18 # The highest zoom level for which the tileset provides data

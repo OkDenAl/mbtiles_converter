@@ -11,7 +11,7 @@ import (
 )
 
 func TestDecoder(t *testing.T) {
-	mvt, err := EncodePixelCoordToGzipMVT([]entity.TilePoint{{10, 9, "cafe"}, {11, 9, "bebra"}}, 6)
+	mvt, err := EncodePixelCoordToGzipMVT([]entity.TilePoint{{X: 10, Y: 9, Type: "cafe"}}, 6)
 	log.Println(mvt)
 	assert.NoError(t, err)
 	ti := time.Now()

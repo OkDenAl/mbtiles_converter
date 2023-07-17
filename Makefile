@@ -1,8 +1,8 @@
 .PHONY: start-db stop-db
-start-db:
+start:
 	docker compose up -d --build
 
-stop-db:
+stop:
 	docker compose down
 
 cover:

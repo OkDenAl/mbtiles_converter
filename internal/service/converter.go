@@ -119,7 +119,7 @@ func (c *converter) convert(ctx context.Context, points []entity.MapPoint, start
 
 func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts) error {
 	offset := 0
-	for offset < 1000 {
+	for {
 		points, err := c.pgRepo.GetNElements(ctx, opts.QuantityToConvert, offset)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -133,5 +133,5 @@ func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts) erro
 		}
 		offset += opts.QuantityToConvert
 	}
-	return nil
+	//return nil
 }

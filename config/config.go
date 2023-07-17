@@ -23,13 +23,11 @@ type (
 		Type    string `yaml:"type"`
 		MinZoom int    `yaml:"min_zoom"`
 		MaxZoom int    `yaml:"max_zoom"`
-		Json    string `yaml:"json"`
 	}
 	ConverterOpts struct {
 		QuantityToConvert int `yaml:"quantity_to_convert"`
 		StartZoom         int `yaml:"start_zoom"`
 		EndZoom           int `yaml:"end_zoom"`
-		ConverterMode     int `yaml:"converter_mode"`
 	}
 )
 
