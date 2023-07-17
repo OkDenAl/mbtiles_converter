@@ -5,8 +5,3 @@ type TileCoords struct {
 	Row    float64
 	Zoom   int
 }
-
-type PointCoords struct {
-	X float64
-	Y float64
-}

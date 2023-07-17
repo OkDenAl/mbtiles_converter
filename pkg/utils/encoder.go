@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
 	"google.golang.org/protobuf/proto"
@@ -11,18 +12,17 @@ import (
 
 const DefaultLayerName = "cities"
 
-func EncodePixelCoordToGzipMVT(coords [][2]float64, zoom int) ([]byte, error) {
-	geo := geom.MultiPoint{}
-	err := geo.SetPoints(coords)
-	if err != nil {
-		return nil, err
-	}
-	f := mvt.NewFeatures(geo, nil)
+func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte, error) {
 	l := &mvt.Layer{Name: DefaultLayerName}
-	l.AddFeatures(f...)
+	features := make([]mvt.Feature, len(tilePoints))
+	for i, tilePoint := range tilePoints {
+		geo := geom.Point{tilePoint.X, tilePoint.Y}
+		features[i] = mvt.Feature{Geometry: geo, Tags: map[string]interface{}{"type": tilePoint.Type}}
+	}
+	l.AddFeatures(features...)
 	l.SetExtent(1 << zoom)
 	t := mvt.Tile{}
-	err = t.AddLayers(l)
+	err := t.AddLayers(l)
 	if err != nil {
 		return nil, err
 	}

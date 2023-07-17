@@ -12,3 +12,9 @@ type MbtilesMapPoint struct {
 	ZoomLevel int
 	TileData  []byte
 }
+
+type TilePoint struct {
+	X    float64
+	Y    float64
+	Type string
+}

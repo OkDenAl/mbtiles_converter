@@ -36,10 +36,10 @@ func decodeLayer(pb *vectorTile.Tile_Layer, dst *Layer) error {
 	dst.Name = pb.Name
 	dst.extent = p.Int(int(pb.Extent))
 
-	dst.features = make([]Feature, len(pb.Features))
+	dst.Features = make([]Feature, len(pb.Features))
 
 	for i, v := range pb.Features {
-		err := decodeFeature(v, &dst.features[i])
+		err := decodeFeature(v, &dst.Features[i])
 		if err != nil {
 			return err
 		}

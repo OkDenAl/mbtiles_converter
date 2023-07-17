@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	mvt2 "github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
 	"github.com/stretchr/testify/assert"
@@ -10,11 +11,12 @@ import (
 )
 
 func TestDecoder(t *testing.T) {
-	mvt, err := EncodePixelCoordToGzipMVT([][2]float64{{10, 8}}, 6)
+	mvt, err := EncodePixelCoordToGzipMVT([]entity.TilePoint{{10, 9, "cafe"}, {11, 9, "bebra"}}, 6)
 	log.Println(mvt)
 	assert.NoError(t, err)
 	ti := time.Now()
 	a, err := DecodeFromGzipMVT(mvt)
+	log.Println(*a)
 	assert.NoError(t, err)
 	assert.Equal(t, a.TakeLayers()[0].Version(), 2)
 	assert.Equal(t, a.TakeLayers()[0].Extent(), 64)
