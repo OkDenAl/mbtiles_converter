@@ -6,7 +6,7 @@ import (
 	"context"
 	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 const DefaultLayerName = "cities"

@@ -3,42 +3,14 @@ package mvt
 import (
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-
+	vectorTile "github.com/OkDenAl/mbtiles_converter/pkg/mvt/vector_tile"
 	"github.com/arolek/p"
 	"github.com/go-spatial/geom"
-	vectorTile "github.com/go-spatial/geom/encoding/mvt/vector_tile"
 	"github.com/go-spatial/geom/winding"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
-// TileGeomCollection returns all geometries in a tile
-// as a collection
-func TileGeomCollection(tile *Tile) geom.Collection {
-	ret := geom.Collection{}
-	for _, v := range tile.Layers {
-		for _, vv := range v.features {
-			ret = append(ret, vv.Geometry)
-		}
-	}
-
-	return ret
-}
-
-// Decode reads all the data from r and decodes the MVT tile into a Tile
-// TODO(ear7h): handle tile tags
-func Decode(r io.Reader) (*Tile, error) {
-	byt, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return DecodeByte(byt)
-}
-
 // DecodeByte decodes the MVT encoded bytes into a Tile.
-// TODO(ear7h): handle tile tags
 func DecodeByte(b []byte) (*Tile, error) {
 	vtile := new(vectorTile.Tile)
 
@@ -61,8 +33,8 @@ func DecodeByte(b []byte) (*Tile, error) {
 }
 
 func decodeLayer(pb *vectorTile.Tile_Layer, dst *Layer) error {
-	dst.Name = *pb.Name
-	dst.extent = p.Int(int(*pb.Extent))
+	dst.Name = pb.Name
+	dst.extent = p.Int(int(pb.Extent))
 
 	dst.features = make([]Feature, len(pb.Features))
 
@@ -77,10 +49,9 @@ func decodeLayer(pb *vectorTile.Tile_Layer, dst *Layer) error {
 }
 
 func decodeFeature(pb *vectorTile.Tile_Feature, dst *Feature) error {
-	dst.ID = pb.Id
-	// TODO tag support
+	dst.ID = &pb.Id
 	var err error
-	dst.Geometry, err = DecodeGeometry(*pb.Type, pb.Geometry)
+	dst.Geometry, err = DecodeGeometry(pb.Type, pb.Geometry)
 	return err
 }
 
@@ -107,7 +78,7 @@ func decodePoint(buf []uint32) (geom.Geometry, error) {
 		buf = buf[1:]
 
 		if len(buf) < cmd.Count()*2 {
-			return nil, fmt.Errorf("not enough integers (%v) for %s", len(buf), cmd)
+			return nil, fmt.Errorf("not enough integers (%v) for %d", len(buf), cmd)
 		}
 
 		switch cmd.ID() {
@@ -116,7 +87,7 @@ func decodePoint(buf []uint32) (geom.Geometry, error) {
 			buf = buf[cmd.Count()*2:]
 
 		default:
-			return nil, fmt.Errorf("invalid command for POINT, %s", cmd)
+			return nil, fmt.Errorf("invalid command for POINT, %d", cmd)
 		}
 	}
 
@@ -147,18 +118,10 @@ func decodeLineString(buf []uint32) (geom.Geometry, error) {
 		cmd = Command(buf[0])
 		buf = buf[1:]
 
-		if len(buf) < cmd.Count()*2 {
-			return nil, fmt.Errorf("not enough integers (%v) for %s", len(buf), cmd)
-		}
-
 		switch cmd.ID() {
 		case cmdMoveTo:
 			if lastCmd != 0 && lastCmd.ID() != cmdLineTo {
 				return nil, fmt.Errorf("%v cannot follow %v for LINESTRING", cmd, lastCmd)
-			}
-
-			if cmd.Count() != 1 {
-				// return error
 			}
 
 			curs.decodePoint(buf[0], buf[1])
@@ -178,7 +141,7 @@ func decodeLineString(buf []uint32) (geom.Geometry, error) {
 			ret = append(ret, ln)
 
 		default:
-			return nil, fmt.Errorf("invalid command for LINESTRING, %s", cmd)
+			return nil, fmt.Errorf("invalid command for LINESTRING, %d", cmd)
 		}
 	}
 
@@ -207,17 +170,13 @@ func decodePoly(buf []uint32) (geom.Geometry, error) {
 		buf = buf[1:]
 
 		if cmd.ID() != cmdClosePath && len(buf) < cmd.Count()*2 {
-			return nil, fmt.Errorf("not enough integers (%v) for %s", len(buf), cmd)
+			return nil, fmt.Errorf("not enough integers (%v) for %d", len(buf), cmd)
 		}
 
 		switch cmd.ID() {
 		case cmdMoveTo:
 			if lastCmd != 0 && lastCmd.ID() != cmdClosePath {
 				return nil, fmt.Errorf("%v cannot follow %v for POLYGON", cmd, lastCmd)
-			}
-
-			if cmd.Count() != 1 {
-				// cannot be 1
 			}
 
 			curs.decodePoint(buf[0], buf[1])

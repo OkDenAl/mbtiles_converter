@@ -6,9 +6,9 @@ db:
   dsn: postgres://mbtiles:mbtiles@pg:5432/geo # connection string to postgres bd with initial geo points
 
 converter_opts:
-  quantity_to_convert: 10 # amount of data to convert to .mbtiles format
+  quantity_to_convert: 1000 # amount of data to convert to .mbtiles format
   start_zoom: 7 # start zoom from which geo objects will be visible
   end_zoom: 12 # end zoom from which geo objects will be visible
-  converter_mode:  2 # mode of convertation (there are 2 modes: 1) with using map storage 2) without using map storage
+  converter_mode:  3 # mode of convertation (there are 2 modes: 1) with using map storage 2) without using map storage
 
 metadata:
