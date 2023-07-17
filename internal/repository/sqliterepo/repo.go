@@ -15,6 +15,7 @@ type Repository interface {
 	GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte, error)
 	AddTile(ctx context.Context, point entity.MbtilesMapPoint) error
 	UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint) error
+	UpdateTilesDataBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error
 	FillMetadata(ctx context.Context, metadata entity.Metadata) error
 }
 
@@ -91,6 +92,22 @@ func (r *repo) UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint)
 	q := `UPDATE tiles SET tile_data = $1 WHERE zoom_level = $2 AND tile_column = $3 AND tile_row = $4`
 	_, err := r.conn.ExecContext(ctx, q, point.TileData, point.ZoomLevel, point.TileCol, float64(maxZ)-point.TileRow-1)
 	return err
+}
+
+func (r *repo) UpdateTilesDataBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error {
+	tx, err := r.conn.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := `UPDATE tiles SET tile_data = $1 WHERE zoom_level = $2 AND tile_column = $3 AND tile_row = $4`
+	for _, point := range mbtilesPoints {
+		_, err = tx.ExecContext(ctx, q, point.TileData, point.ZoomLevel, point.TileCol, point.TileRow)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (r *repo) FillMetadata(ctx context.Context, metadata entity.Metadata) error {
