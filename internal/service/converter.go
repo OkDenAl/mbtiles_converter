@@ -8,11 +8,10 @@ import (
 	"github.com/OkDenAl/mbtiles_converter/config"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/internal/repository/pg"
-	"github.com/OkDenAl/mbtiles_converter/internal/repository/sqlite"
+	"github.com/OkDenAl/mbtiles_converter/internal/repository/sqliterepo"
+	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/OkDenAl/mbtiles_converter/pkg/utils"
 	"github.com/go-spatial/geom"
-	"github.com/go-spatial/geom/encoding/mvt"
-	"log"
 	"math"
 )
 
@@ -26,17 +25,16 @@ type Converter interface {
 
 type converter struct {
 	pgRepo     pg.Repository
-	sqliteRepo sqlite.Repository
+	sqliteRepo sqliterepo.Repository
 }
 
-func NewConverter(pgRepo pg.Repository, sqliteRepo sqlite.Repository) Converter {
+func NewConverter(pgRepo pg.Repository, sqliteRepo sqliterepo.Repository) Converter {
 	return &converter{pgRepo: pgRepo, sqliteRepo: sqliteRepo}
 }
 
 func (c *converter) convertUsingMap(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
 	tiles := make(map[entity.TileCoords][][2]float64, 0)
 	mbtilesPoints := make([]entity.MbtilesMapPoint, 0)
-	log.Println("convertUsingMap", len(points), startZoom, endZoom)
 	for _, point := range points {
 		for zoom := startZoom; zoom < endZoom; zoom++ {
 			tile := entity.TileCoords{
@@ -53,7 +51,6 @@ func (c *converter) convertUsingMap(ctx context.Context, points []entity.MapPoin
 			tiles[tile] = append(tiles[tile], [2]float64{x, y})
 		}
 	}
-	log.Println(len(tiles))
 	for tile, val := range tiles {
 		gzipBuf, err := utils.EncodePixelCoordToGzipMVT(val, tile.Zoom)
 		if err != nil {
@@ -62,7 +59,6 @@ func (c *converter) convertUsingMap(ctx context.Context, points []entity.MapPoin
 		mbtilesPoints = append(mbtilesPoints, entity.MbtilesMapPoint{TileCol: tile.Column,
 			TileRow: tile.Row, ZoomLevel: tile.Zoom, TileData: gzipBuf})
 	}
-	log.Println(len(mbtilesPoints))
 	err := c.sqliteRepo.AddTilesBatch(ctx, mbtilesPoints)
 	if err != nil {
 		return fmt.Errorf("Convert-c.sqliteRepo.AddTilesBatch: %w", err)
@@ -104,7 +100,7 @@ func (c *converter) convertWithoutMap(ctx context.Context, points []entity.MapPo
 				return fmt.Errorf("Convert-utils.DecodeFromGzipMVT : %w", err)
 			}
 			f := mvt.NewFeatures(geom.Point{x, y}, nil)
-			decodedTile.Layers()[0].AddFeatures(f...)
+			decodedTile.Layers[0] = decodedTile.TakeLayers()[0].AddFeatures(f...)
 			mbtilesPoint.TileData, err = utils.EncodeTileToMVT(*decodedTile)
 			if err != nil {
 				return fmt.Errorf("Convert-utils.EncodeTileToMVT : %w", err)

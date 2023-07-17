@@ -1,10 +1,10 @@
-package sqlite
+package sqliterepo
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
+	"github.com/OkDenAl/mbtiles_converter/pkg/sqlite"
 	"log"
 	"strings"
 )
@@ -19,10 +19,10 @@ type Repository interface {
 }
 
 type repo struct {
-	conn *sql.DB
+	conn *sqlite.Pool
 }
 
-func NewRepo(conn *sql.DB) Repository {
+func NewRepo(conn *sqlite.Pool) Repository {
 	return &repo{conn: conn}
 }
 
@@ -40,12 +40,16 @@ func (r *repo) AddTilesBatch(ctx context.Context, mbtilesPoints []entity.Mbtiles
 	stmt := fmt.Sprintf("INSERT INTO tiles (zoom_level, tile_column, tile_row , tile_data) VALUES %s",
 		strings.Join(valueStrings, ","))
 	log.Println(stmt)
-	_, err := r.conn.ExecContext(ctx, stmt, valueArgs...)
+	db := r.conn.Checkout()
+	defer r.conn.Checkin(db)
+	_, err := db.ExecContext(ctx, stmt, valueArgs...)
 	return err
 }
 
 func (r *repo) CreateTables(ctx context.Context) error {
-	tx, err := r.conn.BeginTx(ctx, nil)
+	db := r.conn.Checkout()
+	defer r.conn.Checkin(db)
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -69,8 +73,11 @@ func (r *repo) CreateTables(ctx context.Context) error {
 }
 
 func (r *repo) GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte, error) {
+	db := r.conn.Checkout()
+	defer r.conn.Checkin(db)
+	maxZ := 1 << tile.Zoom
 	q := `SELECT tile_data FROM tiles WHERE zoom_level = $1 AND tile_column = $2 AND tile_row = $3`
-	row := r.conn.QueryRowContext(ctx, q, tile.Zoom, tile.Column, tile.Row)
+	row := db.QueryRowContext(ctx, q, tile.Zoom, tile.Column, float64(maxZ)-tile.Row-1)
 	var tileData []byte
 	err := row.Scan(&tileData)
 	if err != nil {
@@ -80,17 +87,24 @@ func (r *repo) GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte,
 }
 
 func (r *repo) AddTile(ctx context.Context, point entity.MbtilesMapPoint) error {
+	db := r.conn.Checkout()
+	defer r.conn.Checkin(db)
+	maxZ := 1 << point.ZoomLevel
 	q := `INSERT INTO tiles (zoom_level, tile_column, tile_row , tile_data) VALUES ($1,$2,$3,$4)`
-	_, err := r.conn.ExecContext(ctx, q, point.ZoomLevel, point.TileCol, point.TileRow, point.TileData)
+	_, err := db.ExecContext(ctx, q, point.ZoomLevel, point.TileCol, float64(maxZ)-point.TileRow-1, point.TileData)
 	return err
 }
 
 func (r *repo) UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint) error {
+	db := r.conn.Checkout()
+	defer r.conn.Checkin(db)
+	maxZ := 1 << point.ZoomLevel
 	q := `UPDATE tiles SET tile_data = $1 WHERE zoom_level = $2 AND tile_column = $3 AND tile_row = $4`
-	_, err := r.conn.ExecContext(ctx, q, point.TileData, point.ZoomLevel, point.TileCol, point.TileRow)
+	_, err := db.ExecContext(ctx, q, point.TileData, point.ZoomLevel, point.TileCol, float64(maxZ)-point.TileRow-1)
 	return err
 }
 
 func (r *repo) FillMetadata(ctx context.Context, metadata entity.Metadata) error {
+	log.Println("starting to fill metadata")
 	return nil
 }

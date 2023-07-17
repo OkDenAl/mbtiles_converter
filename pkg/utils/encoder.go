@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
-	"github.com/go-spatial/geom/encoding/mvt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 const DefaultLayerName = "cities"

@@ -86,6 +86,16 @@ func encodeZigZag(i int64) uint32 {
 	return uint32((i << 1) ^ (i >> 31))
 }
 
+// ID encodes the ID of the command
+func (c Command) ID() uint32 {
+	return uint32(c) & 0x7
+}
+
+// Count encode the count of elements in the command
+func (c Command) Count() int {
+	return int(uint32(c) >> 3)
+}
+
 // cursor reprsents the current position, this is needed to encode the geometry.
 // the origin (0,0) is the top-left of the Tile.
 type cursor struct {

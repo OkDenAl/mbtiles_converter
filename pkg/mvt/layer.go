@@ -88,7 +88,7 @@ func (l *Layer) Features() (f []Feature) {
 
 // AddFeatures will add one or more Features to the Layer
 // per the spec features SHOULD have unique ids but it's not required
-func (l *Layer) AddFeatures(features ...Feature) {
+func (l *Layer) AddFeatures(features ...Feature) Layer {
 	// pre allocate memory
 	b := make([]Feature, len(l.features)+len(features))
 
@@ -96,6 +96,7 @@ func (l *Layer) AddFeatures(features ...Feature) {
 	copy(b[len(l.features):], features)
 
 	l.features = b
+	return *l
 }
 
 func vectorTileValue(i interface{}) *vectorTile.Tile_Value {

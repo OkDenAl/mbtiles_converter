@@ -3,7 +3,7 @@ package utils
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/go-spatial/geom/encoding/mvt"
+	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"io"
 )
 
