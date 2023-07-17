@@ -15,12 +15,8 @@ import (
 	"math"
 )
 
-var (
-	ErrInvalidConvertMode = errors.New("invalid convert mode")
-)
-
 type Converter interface {
-	Convert(ctx context.Context, opts config.ConverterOpts) error
+	Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error
 }
 
 type converter struct {
@@ -121,10 +117,18 @@ func (c *converter) convert(ctx context.Context, points []entity.MapPoint, start
 	return nil
 }
 
-func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts) error {
+func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error {
+	err := c.sqliteRepo.CreateTables(ctx)
+	if err != nil {
+		return err
+	}
+	err = c.sqliteRepo.FillMetadata(ctx, entity.NewMetadata(meta))
+	if err != nil {
+		return err
+	}
 	offset := 0
-	for {
-		points, err := c.pgRepo.GetNElements(ctx, opts.QuantityToConvert, offset)
+	for offset < opts.ConvertLimit {
+		points, err := c.pgRepo.GetNElements(ctx, opts.BatchSize, offset)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
@@ -135,6 +139,7 @@ func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts) erro
 		if err != nil {
 			return err
 		}
-		offset += opts.QuantityToConvert
+		offset += opts.BatchSize
 	}
+	return nil
 }

@@ -20,14 +20,14 @@ type (
 		Name    string `yaml:"name"`
 		Bounds  string `yaml:"bounds"`
 		Center  string `yaml:"center"`
-		Type    string `yaml:"type"`
 		MinZoom int    `yaml:"min_zoom"`
 		MaxZoom int    `yaml:"max_zoom"`
 	}
 	ConverterOpts struct {
-		QuantityToConvert int `yaml:"quantity_to_convert"`
-		StartZoom         int `yaml:"start_zoom"`
-		EndZoom           int `yaml:"end_zoom"`
+		BatchSize    int `yaml:"batch_size"`
+		ConvertLimit int `yaml:"convert_limit"`
+		StartZoom    int `yaml:"start_zoom"`
+		EndZoom      int `yaml:"end_zoom"`
 	}
 )
 

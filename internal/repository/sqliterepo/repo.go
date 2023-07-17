@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
-	"log"
+	"reflect"
 	"strings"
 )
 
@@ -111,6 +111,26 @@ func (r *repo) UpdateTilesDataBatch(ctx context.Context, mbtilesPoints []entity.
 }
 
 func (r *repo) FillMetadata(ctx context.Context, metadata entity.Metadata) error {
-	log.Println("starting to fill metadata")
-	return nil
+	v := reflect.ValueOf(metadata)
+	typeOfM := v.Type()
+	valueStrings := make([]string, 0, v.NumField())
+	valueArgs := make([]interface{}, 0, v.NumField()*2)
+	for i := 0; i < v.NumField(); i++ {
+		switch v.Field(i).Interface().(type) {
+		case int:
+			if v.Field(i).Interface() == 0 && typeOfM.Field(i).Name != "MinZoom" {
+				continue
+			}
+		case string:
+			if v.Field(i).Interface() == "" {
+				continue
+			}
+		}
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d)", i*2+1, i*2+2))
+		valueArgs = append(valueArgs, strings.ToLower(typeOfM.Field(i).Name))
+		valueArgs = append(valueArgs, v.Field(i).Interface())
+	}
+	stmt := fmt.Sprintf("INSERT INTO metadata (name, value) VALUES %s", strings.Join(valueStrings, ","))
+	_, err := r.conn.ExecContext(ctx, stmt, valueArgs...)
+	return err
 }

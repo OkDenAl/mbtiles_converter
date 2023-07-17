@@ -10,10 +10,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const DefaultLayerName = "cities"
-
 func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte, error) {
-	l := &mvt.Layer{Name: DefaultLayerName}
+	l := &mvt.Layer{Name: entity.DefaultLayerName}
 	features := make([]mvt.Feature, len(tilePoints))
 	for i, tilePoint := range tilePoints {
 		geo := geom.Point{tilePoint.X, tilePoint.Y}
