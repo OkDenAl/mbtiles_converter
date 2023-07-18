@@ -18,15 +18,13 @@ type Layer struct {
 	Name string
 	// The set of Features
 	Features []Feature
-	// default is 4096
-	extent *int
+	extent   *int
 }
 
 func valMapToVTileValue(valMap []interface{}) (vt []*vectorTile.Tile_Value) {
 	for _, v := range valMap {
 		vt = append(vt, vectorTileValue(v))
 	}
-
 	return vt
 }
 
@@ -36,9 +34,7 @@ func (l *Layer) VTileLayer(ctx context.Context) (*vectorTile.Tile_Layer, error) 
 	if err != nil {
 		return nil, err
 	}
-
 	valmap := valMapToVTileValue(vmap)
-
 	var features = make([]*vectorTile.Tile_Feature, 0, len(l.Features))
 	for _, f := range l.Features {
 		vtf, err := f.VTileFeature(ctx, kmap, vmap)
@@ -50,21 +46,13 @@ func (l *Layer) VTileLayer(ctx context.Context) (*vectorTile.Tile_Layer, error) 
 				return nil, fmt.Errorf("error getting VTileFeature: %v", err)
 			}
 		}
-
 		if vtf != nil {
 			features = append(features, vtf)
 		}
 	}
 	ext := uint32(*l.extent)
 	version := Version
-	vtl := new(vectorTile.Tile_Layer)
-	vtl.Version = version
-	name := l.Name
-	vtl.Name = name
-	vtl.Features = features
-	vtl.Keys = kmap
-	vtl.Values = valmap
-	vtl.Extent = ext
+	vtl := &vectorTile.Tile_Layer{Name: l.Name, Version: version, Features: features, Keys: kmap, Values: valmap, Extent: ext}
 	return vtl, nil
 }
 
@@ -79,12 +67,9 @@ func (l *Layer) SetExtent(e int) {
 // AddFeatures will add one or more Features to the Layer
 // per the spec features SHOULD have unique ids but it's not required
 func (l *Layer) AddFeatures(features ...Feature) Layer {
-	// pre allocate memory
 	b := make([]Feature, len(l.Features)+len(features))
-
 	copy(b, l.Features)
 	copy(b[len(l.Features):], features)
-
 	l.Features = b
 	return *l
 }
@@ -92,7 +77,6 @@ func (l *Layer) AddFeatures(features ...Feature) Layer {
 func vectorTileValue(i interface{}) *vectorTile.Tile_Value {
 	tv := new(vectorTile.Tile_Value)
 	switch t := i.(type) {
-
 	case int:
 		tv.Type = &vectorTile.Tile_Value_IntValue{IntValue: int64(t)}
 	case string:

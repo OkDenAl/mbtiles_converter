@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/go-spatial/geom"
-	"github.com/go-spatial/geom/winding"
 )
 
 var (
@@ -35,12 +34,10 @@ func NewFeatures(geo geom.Geometry, tags map[string]interface{}) (f []Feature) {
 		}
 		return f
 	}
-
 	f = append(f, Feature{
 		Tags:     tags,
 		Geometry: geo,
 	})
-
 	return f
 }
 
@@ -69,9 +66,7 @@ func (f *Feature) VTileFeature(ctx context.Context, keys []string, vals []interf
 }
 
 const (
-	cmdMoveTo    uint32 = 1
-	cmdLineTo    uint32 = 2
-	cmdClosePath uint32 = 7
+	cmdMoveTo uint32 = 1
 )
 
 type Command uint32
@@ -125,14 +120,6 @@ func (c *cursor) moveCursorPoints(pts ...[2]int64) (deltas [][2]int64) {
 	return deltas
 }
 
-func (c *cursor) encodeZigZagPt(pts [][2]int64) []uint32 {
-	g := make([]uint32, 0, (2 * len(pts)))
-	for _, dp := range pts {
-		g = append(g, encodeZigZag(dp[0]), encodeZigZag(dp[1]))
-	}
-	return g
-}
-
 func (c *cursor) encodeCmd(cmd uint32, points [][2]float64) []uint32 {
 	if len(points) == 0 {
 		return []uint32{}
@@ -152,84 +139,9 @@ func (c *cursor) encodeCmd(cmd uint32, points [][2]float64) []uint32 {
 	return g
 }
 
-func (c *cursor) encodeLinearRing(order winding.Order, wo winding.Winding, ring [][2]float64) []uint32 {
-
-	iring := make([][2]int64, len(ring))
-	for i := range iring {
-		// the process of truncating the float can cause the winding order to flip!
-		iring[i][0], iring[i][1] = int64(ring[i][0]), int64(ring[i][1])
-	}
-	ringWinding := order.OfInt64Points(iring...)
-
-	if ringWinding.IsColinear() {
-		return []uint32{}
-	}
-
-	if ringWinding != wo {
-		// need to reverse the points in the ring
-		for i := len(iring)/2 - 1; i >= 0; i-- {
-			opp := len(iring) - 1 - i
-			iring[i], iring[opp] = iring[opp], iring[i]
-		}
-	}
-
-	deltas := c.moveCursorPoints(iring...)
-
-	// 3 is for the three commands that it takes to describe a ring: move to, line to, and close
-	g := make([]uint32, 0, (2*len(iring))+3)
-
-	// move to first point
-	g = append(g,
-		uint32(NewCommand(cmdMoveTo, 1)),
-		encodeZigZag(deltas[0][0]),
-		encodeZigZag(deltas[0][1]),
-	)
-
-	// line to each of the other points
-	g = append(g, uint32(NewCommand(cmdLineTo, len(deltas)-1)))
-	g = append(g, c.encodeZigZagPt(deltas[1:])...)
-
-	// Close path
-	g = append(g, uint32(NewCommand(cmdClosePath, 1)))
-
-	return g
-}
-
-func (c *cursor) encodePolygon(geo geom.Polygon) []uint32 {
-	g := []uint32{}
-
-	lines := geo.LinearRings()
-	for i := range lines {
-		// bail if number of points is less than two
-		if len(lines[i]) < 2 {
-			if i != 0 {
-				continue
-			}
-			return g
-		}
-		order := winding.Order{YPositiveDown: true}
-		wo := winding.CounterClockwise
-		if i == 0 {
-			wo = winding.Clockwise
-		}
-		g = append(g, c.encodeLinearRing(order, wo, lines[i])...)
-	}
-	return g
-}
-
 // MoveTo encodes a move to command for the given points
 func (c *cursor) MoveTo(points ...[2]float64) []uint32 {
 	return c.encodeCmd(uint32(NewCommand(cmdMoveTo, len(points))), points)
-}
-
-// LineTo encodes a line to command for the given points
-func (c *cursor) LineTo(points ...[2]float64) []uint32 {
-	return c.encodeCmd(uint32(NewCommand(cmdLineTo, len(points))), points)
-}
-
-// ClosePath encodes a close path command
-func (c *cursor) ClosePath() uint32 {
-	return uint32(NewCommand(cmdClosePath, 1))
 }
 
 // encodeGeometry will take a geom.Geometry and encode it according to the
@@ -249,43 +161,6 @@ func encodeGeometry(ctx context.Context, geometry geom.Geometry) (g []uint32, vt
 	case geom.MultiPoint:
 		g = append(g, c.MoveTo(t.Points()...)...)
 		return g, vectorTile.Tile_POINT, nil
-
-	case geom.LineString:
-		points := t.Vertices()
-		g = append(g, c.MoveTo(points[0])...)
-		g = append(g, c.LineTo(points[1:]...)...)
-		return g, vectorTile.Tile_LINESTRING, nil
-
-	case geom.MultiLineString:
-		lines := t.LineStrings()
-		for _, l := range lines {
-			points := geom.LineString(l).Vertices()
-			g = append(g, c.MoveTo(points[0])...)
-			g = append(g, c.LineTo(points[1:]...)...)
-		}
-		return g, vectorTile.Tile_LINESTRING, nil
-
-	case geom.Polygon:
-		g = append(g, c.encodePolygon(t)...)
-		return g, vectorTile.Tile_POLYGON, nil
-
-	case geom.MultiPolygon:
-		polygons := t.Polygons()
-		for _, p := range polygons {
-			g = append(g, c.encodePolygon(p)...)
-		}
-		return g, vectorTile.Tile_POLYGON, nil
-
-	case *geom.MultiPolygon:
-		if t == nil {
-			return g, vectorTile.Tile_POLYGON, nil
-		}
-
-		polygons := t.Polygons()
-		for _, p := range polygons {
-			g = append(g, c.encodePolygon(p)...)
-		}
-		return g, vectorTile.Tile_POLYGON, nil
 
 	default:
 		return nil, vectorTile.Tile_UNKNOWN, ErrUnknownGeometryType
@@ -314,7 +189,6 @@ func keyvalMapsFromFeatures(features []Feature) (keyMap []string, valMap []inter
 			switch vt := v.(type) {
 			default:
 				if vt == nil {
-					// ignore nil types
 					continue
 				}
 				return keyMap, valMap, fmt.Errorf("unsupported type for value(%v) with key(%v) in tags for feature %v.", vt, k, f)
@@ -352,14 +226,14 @@ func keyvalMapsFromFeatures(features []Feature) (keyMap []string, valMap []inter
 						break
 					}
 				}
-			} // value type switch
+			}
 
 			if !didFind {
 				valMap = append(valMap, v)
 			}
 
-		} // For f.Tags
-	} // for features
+		}
+	}
 	return keyMap, valMap, nil
 }
 
@@ -370,19 +244,17 @@ func keyvalTagsMap(keyMap []string, valueMap []interface{}, f *Feature) (tags []
 	if f == nil {
 		return nil, ErrNilFeature
 	}
-
 	var kidx, vidx int64
-
 	for key, val := range f.Tags {
 
-		kidx, vidx = -1, -1 // Set to known not found value.
+		kidx, vidx = -1, -1
 
 		for i, k := range keyMap {
 			if k != key {
-				continue // move to the next key
+				continue
 			}
 			kidx = int64(i)
-			break // we found a match
+			break
 		}
 
 		if kidx == -1 {
@@ -399,9 +271,9 @@ func keyvalTagsMap(keyMap []string, valueMap []interface{}, f *Feature) (tags []
 			default:
 				return tags, fmt.Errorf("value (%[1]v) of type (%[1]T) for key (%[2]v) is not supported.", tv, key)
 			case string:
-				vmt, ok := v.(string) // Make sure the type of the Value map matches the type of the Tag's value
-				if !ok || vmt != tv { // and that the values match
-					continue // if they don't match move to the next value.
+				vmt, ok := v.(string)
+				if !ok || vmt != tv {
+					continue
 				}
 			case int:
 				vmt, ok := v.(int)
@@ -418,17 +290,15 @@ func keyvalTagsMap(keyMap []string, valueMap []interface{}, f *Feature) (tags []
 				if !ok || vmt != tv {
 					continue
 				}
-			} // Values Switch Statement
-			// if the values match let's record the index.
+			}
 			vidx = int64(i)
-			break // we found our value no need to continue on.
-		} // range on value
+			break
+		}
 
 		if vidx == -1 { // None of the values matched.
 			return tags, fmt.Errorf("did not find a value: %v in valuemap.", val)
 		}
 		tags = append(tags, uint32(kidx), uint32(vidx))
-	} // Move to the next tag key and value.
-
+	}
 	return tags, nil
 }

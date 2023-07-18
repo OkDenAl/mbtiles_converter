@@ -37,10 +37,9 @@ func (t *Tile) TakeLayers() (l []Layer) {
 // Version is the version of tile spec this layer is from.
 func (*Layer) Version() int { return int(Version) }
 
-// Extent defaults to 4096
 func (l *Layer) Extent() int {
 	if l == nil || l.extent == nil {
-		return int(64)
+		return 0
 	}
 	return *(l.extent)
 }
@@ -49,7 +48,6 @@ func (l *Layer) Extent() int {
 // This function does the hard work of converting everything to the standard.
 func (t *Tile) VTile(ctx context.Context) (vt *vectorTile.Tile, err error) {
 	vt = new(vectorTile.Tile)
-
 	for _, l := range t.Layers {
 		vtl, err := l.VTileLayer(ctx)
 		if err != nil {
@@ -60,9 +58,7 @@ func (t *Tile) VTile(ctx context.Context) (vt *vectorTile.Tile, err error) {
 				return nil, fmt.Errorf("error Getting VTileLayer: %v", err)
 			}
 		}
-
 		vt.Layers = append(vt.Layers, vtl)
 	}
-
 	return vt, nil
 }
