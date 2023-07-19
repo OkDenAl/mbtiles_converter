@@ -34,4 +34,4 @@ jobs:
         working-directory: ${{ matrix.work_dir }}
         run: |
           go mod tidy
-          go test -v -race -coverpkg=./... ./...
+          make cover
