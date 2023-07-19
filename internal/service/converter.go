@@ -48,11 +48,11 @@ func makeTileDict(points []entity.MapPoint, startZoom, endZoom int) map[entity.T
 	tiles := make(map[entity.TileCoords][]entity.TilePoint, 0)
 	for _, point := range points {
 		for zoom := startZoom; zoom < endZoom; zoom++ {
-			tile, coords := makeMapProjection(point, zoom)
+			tile, pixelCoordInTile := makeMapProjection(point, zoom)
 			if _, ok := tiles[tile]; !ok {
 				tiles[tile] = make([]entity.TilePoint, 0)
 			}
-			tiles[tile] = append(tiles[tile], coords)
+			tiles[tile] = append(tiles[tile], pixelCoordInTile)
 		}
 	}
 	return tiles
@@ -76,7 +76,7 @@ func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, 
 	return tileData, nil
 }
 
-func (c *converter) convert(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
+func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
 	tiles := makeTileDict(points, startZoom, endZoom)
 	tileToAdd := make([]entity.MbtilesMapPoint, 0)
 	tilesToUpdate := make([]entity.MbtilesMapPoint, 0)
@@ -135,7 +135,7 @@ func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta
 			}
 			return err
 		}
-		err = c.convert(ctx, points, opts.StartZoom, opts.EndZoom)
+		err = c.convertHelper(ctx, points, opts.StartZoom, opts.EndZoom)
 		if err != nil {
 			return err
 		}

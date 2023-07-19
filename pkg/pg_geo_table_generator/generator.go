@@ -29,9 +29,6 @@ func (g *geoGenerator) Generate(ctx context.Context, bord Borders, amount int) e
 	if err != nil {
 		return err
 	}
-	//if amount > maxAvailableAmount {
-	//	amount = maxAvailableAmount
-	//}
 	return g.repo.FillTable(ctx, bord, amount)
 }
 

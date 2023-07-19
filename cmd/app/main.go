@@ -47,6 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 	log.Info("successfully connected")
 
 	log.Info("converting data...")
