@@ -8,7 +8,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Repository represent the methods for PostgreSQL database
 type Repository interface {
+	// GetNElements returns N elements from PostgreSQL table with offset
 	GetNElements(ctx context.Context, n, offset int) ([]entity.MapPoint, error)
 }
 
@@ -16,6 +18,7 @@ type repo struct {
 	conn postgres.PgxPool
 }
 
+// NewRepo creates a new PostgreSQL repository
 func NewRepo(conn *pgxpool.Pool) Repository {
 	return &repo{conn: conn}
 }

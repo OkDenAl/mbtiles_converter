@@ -9,13 +9,21 @@ import (
 	"strings"
 )
 
+// Repository represent the methods for SQLite database
 type Repository interface {
+	// AddTilesBatch adds data about tiles in one sql query
 	AddTilesBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error
+	// CreateTables creates a tables: metadata and tiles (read more in MBtiles spec)
 	CreateTables(ctx context.Context) error
+	// GetTileData returns the tile_data column from tiles table
 	GetTileData(ctx context.Context, tile entity.TileCoords) ([]byte, error)
+	// AddTile adds data about one tile
 	AddTile(ctx context.Context, point entity.MbtilesMapPoint) error
+	// UpdateTileData updates one tile_data column
 	UpdateTileData(ctx context.Context, point entity.MbtilesMapPoint) error
+	// UpdateTilesDataBatch updates tile_data columns in one sql transaction
 	UpdateTilesDataBatch(ctx context.Context, mbtilesPoints []entity.MbtilesMapPoint) error
+	// FillMetadata fills the metadata table
 	FillMetadata(ctx context.Context, metadata entity.Metadata) error
 }
 

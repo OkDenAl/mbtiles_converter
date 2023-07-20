@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// EncodePixelCoordToGzipMVT encodes tile points to mvt format
 func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte, error) {
 	l := &mvt.Layer{Name: entity.DefaultLayerName}
 	features := make([]mvt.Feature, len(tilePoints))
@@ -27,6 +28,7 @@ func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte,
 	return EncodeTileToMVT(t)
 }
 
+// EncodeTileToMVT encodes tile to mvt format
 func EncodeTileToMVT(t mvt.Tile) ([]byte, error) {
 	tile, err := t.VTile(context.Background())
 	if err != nil {

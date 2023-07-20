@@ -7,6 +7,7 @@ import (
 	"io"
 )
 
+// DecodeFromGzipMVT decodes tile_data from .mvt.gz format to *mvt.Tile
 func DecodeFromGzipMVT(data []byte) (*mvt.Tile, error) {
 	rdata := bytes.NewReader(data)
 	gzreader, err := gzip.NewReader(rdata)

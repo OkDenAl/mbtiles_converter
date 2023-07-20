@@ -7,6 +7,7 @@ import (
 
 const DefaultLayerName = "objects"
 
+// Metadata represented the metadata table rows
 type Metadata struct {
 	Name    string
 	Format  string
@@ -18,6 +19,7 @@ type Metadata struct {
 	Json    string
 }
 
+// NewMetadata creates metadata from config data
 func NewMetadata(meta config.Metadata) Metadata {
 	return Metadata{Name: meta.Name, Bounds: meta.Bounds, Center: meta.Center, Type: "overlay",
 		MinZoom: meta.MinZoom, MaxZoom: meta.MaxZoom, Format: "pbf", Json: makeJson(meta)}

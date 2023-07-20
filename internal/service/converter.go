@@ -15,6 +15,7 @@ import (
 	"math"
 )
 
+// Converter represents converters
 type Converter interface {
 	Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error
 }
@@ -24,10 +25,12 @@ type converter struct {
 	sqliteRepo sqliterepo.Repository
 }
 
+// NewConverter creates new converter
 func NewConverter(pgRepo pg.Repository, sqliteRepo sqliterepo.Repository) Converter {
 	return &converter{pgRepo: pgRepo, sqliteRepo: sqliteRepo}
 }
 
+// makeMapProjection makes projection from usual MapPoint with longitude and latitude to Tile
 func makeMapProjection(point entity.MapPoint, zoom int) (entity.TileCoords, entity.TilePoint) {
 	tile := entity.TileCoords{
 		Column: utils.Lon2tileFloor(point.Longitude, zoom),
@@ -44,6 +47,7 @@ func makeMapProjection(point entity.MapPoint, zoom int) (entity.TileCoords, enti
 	return tile, tilePoint
 }
 
+// makeTileDict creates a dictionary displaying tile coordinates to tiles points array
 func makeTileDict(points []entity.MapPoint, startZoom, endZoom int) map[entity.TileCoords][]entity.TilePoint {
 	tiles := make(map[entity.TileCoords][]entity.TilePoint, 0)
 	for _, point := range points {
@@ -58,6 +62,7 @@ func makeTileDict(points []entity.MapPoint, startZoom, endZoom int) map[entity.T
 	return tiles
 }
 
+// addNewPointsToMVT decodes outdated tile_data and adds info about a new tile point and encode it to mvt format again
 func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, error) {
 	decodedTile, err := utils.DecodeFromGzipMVT(tileData)
 	if err != nil {
@@ -76,6 +81,7 @@ func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, 
 	return tileData, nil
 }
 
+// convertHelper converts the data
 func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint, startZoom, endZoom int) error {
 	tiles := makeTileDict(points, startZoom, endZoom)
 	tileToAdd := make([]entity.MbtilesMapPoint, 0)
@@ -117,6 +123,7 @@ func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint,
 	return nil
 }
 
+// Convert converts the geo object information from PostgreSQL to MBtiles vector format
 func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error {
 	err := c.sqliteRepo.CreateTables(ctx)
 	if err != nil {
