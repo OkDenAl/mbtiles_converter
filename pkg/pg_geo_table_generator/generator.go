@@ -2,6 +2,7 @@ package pg_geo_table_generator
 
 import (
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,12 +28,20 @@ func NewGenerator(repo Repository) GeoDBGenerator {
 func (g *geoGenerator) Generate(ctx context.Context, bord Borders, amount int) error {
 	err := g.repo.CreateTable(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("g.repo.CreateTable: %w", err)
 	}
-	return g.repo.FillTable(ctx, bord, amount)
+	err = g.repo.FillTable(ctx, bord, amount)
+	if err != nil {
+		return fmt.Errorf("g.repo.FillTable: %w", err)
+	}
+	return nil
 }
 
 func Run(pool *pgxpool.Pool) error {
 	generator := NewGenerator(NewRepo(pool))
-	return generator.Generate(context.Background(), MoscowSquareBorders, 10000)
+	err := generator.Generate(context.Background(), MoscowSquareBorders, 10000)
+	if err != nil {
+		return fmt.Errorf("generator.Generate: %w", err)
+	}
+	return nil
 }

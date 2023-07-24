@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,7 +28,7 @@ func (r *repo) GetNElements(ctx context.Context, n, offset int) ([]entity.MapPoi
 	q := `SELECT longitude,latitude,type FROM geo_objects LIMIT $1 OFFSET $2`
 	rows, err := r.conn.Query(ctx, q, n, offset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("r.conn.Query with query %s: %w", q, err)
 	}
 	points := make([]entity.MapPoint, n)
 	c := 0
@@ -35,7 +36,7 @@ func (r *repo) GetNElements(ctx context.Context, n, offset int) ([]entity.MapPoi
 		var point entity.MapPoint
 		err = rows.Scan(&point.Longitude, &point.Latitude, &point.Type)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 		points[c] = point
 		c++

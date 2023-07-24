@@ -66,7 +66,7 @@ func makeTileDict(points []entity.MapPoint, startZoom, endZoom int) map[entity.T
 func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, error) {
 	decodedTile, err := utils.DecodeFromGzipMVT(tileData)
 	if err != nil {
-		return nil, fmt.Errorf("utils.DecodeFromGzipMVT : %w", err)
+		return nil, fmt.Errorf("utils.DecodeFromGzipMVT: %w", err)
 	}
 	features := make([]mvt.Feature, len(tilePoints))
 	for i, tilePoint := range tilePoints {
@@ -76,7 +76,7 @@ func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, 
 	decodedTile.Layers[0] = decodedTile.TakeLayers()[0].AddFeatures(features...)
 	tileData, err = utils.EncodeTileToMVT(*decodedTile)
 	if err != nil {
-		return nil, fmt.Errorf("utils.EncodeTileToMVT : %w", err)
+		return nil, fmt.Errorf("utils.EncodeTileToMVT: %w", err)
 	}
 	return tileData, nil
 }
@@ -94,16 +94,16 @@ func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint,
 			if errors.Is(err, sql.ErrNoRows) {
 				mbtilesPoint.TileData, err = utils.EncodePixelCoordToGzipMVT(val, tile.Zoom)
 				if err != nil {
-					return fmt.Errorf("Convert-utils.EncodePixelCoordToGzipMVT : %w", err)
+					return fmt.Errorf("utils.EncodePixelCoordToGzipMVT: %w", err)
 				}
 				tileToAdd = append(tileToAdd, mbtilesPoint)
 				continue
 			}
-			return fmt.Errorf("Convert-c.sqliteRepo.GetTileData : %w", err)
+			return fmt.Errorf("c.sqliteRepo.GetTileData: %w", err)
 		}
 		mbtilesPoint.TileData, err = addNewPointsToMVT(tileData, val)
 		if err != nil {
-			return fmt.Errorf("Convert-addNewPointsToMVT : %w", err)
+			return fmt.Errorf("addNewPointsToMVT: %w", err)
 		}
 		tilesToUpdate = append(tilesToUpdate, mbtilesPoint)
 	}
@@ -111,13 +111,13 @@ func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint,
 	if len(tileToAdd) > 0 {
 		err := c.sqliteRepo.AddTilesBatch(ctx, tileToAdd)
 		if err != nil {
-			return fmt.Errorf("Convert-c.sqliteRepo.AddTilesBatch: %w", err)
+			return fmt.Errorf("c.sqliteRepo.AddTilesBatch: %w", err)
 		}
 	}
 	if len(tilesToUpdate) > 0 {
 		err := c.sqliteRepo.UpdateTilesDataBatch(ctx, tilesToUpdate)
 		if err != nil {
-			return fmt.Errorf("Convert-c.sqliteRepo.UpdateTileData : %w", err)
+			return fmt.Errorf("c.sqliteRepo.UpdateTileData : %w", err)
 		}
 	}
 	return nil
@@ -127,11 +127,11 @@ func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint,
 func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error {
 	err := c.sqliteRepo.CreateTables(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("c.sqliteRepo.CreateTables: %w", err)
 	}
 	err = c.sqliteRepo.FillMetadata(ctx, entity.NewMetadata(meta))
 	if err != nil {
-		return err
+		return fmt.Errorf("c.sqliteRepo.FillMetadata: %w", err)
 	}
 	offset := 0
 	for offset < opts.ConvertLimit {
@@ -140,11 +140,11 @@ func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}
-			return err
+			return fmt.Errorf("c.pgRepo.GetNElements: %w", err)
 		}
 		err = c.convertHelper(ctx, points, opts.StartZoom, opts.EndZoom)
 		if err != nil {
-			return err
+			return fmt.Errorf("c.convertHelper: %w", err)
 		}
 		offset += opts.BatchSize
 	}

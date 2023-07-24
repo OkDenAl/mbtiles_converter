@@ -4,6 +4,7 @@ need_to_generate_data: false # if u need to generate random points to postgres u
 
 db:
   dsn: postgres://mbtiles:mbtiles@pg:5432/geo # connection string to postgres bd with initial geo points
+  table_name: geo_objects
 
 converter_opts:
   batch_size: 10000 # amount of 1 data batch size to convert

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/pkg/mvt"
 	"github.com/go-spatial/geom"
@@ -23,27 +24,31 @@ func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte,
 	t := mvt.Tile{}
 	err := t.AddLayers(l)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("t.AddLayers: %w", err)
 	}
-	return EncodeTileToMVT(t)
+	mvtTile, err := EncodeTileToMVT(t)
+	if err != nil {
+		return nil, fmt.Errorf("EncodeTileToMVT: %w", err)
+	}
+	return mvtTile, nil
 }
 
 // EncodeTileToMVT encodes tile to mvt format
 func EncodeTileToMVT(t mvt.Tile) ([]byte, error) {
 	tile, err := t.VTile(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("t.VTile: %w", err)
 	}
 	marshal, err := proto.Marshal(tile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("proto.Marshal: %w", err)
 	}
 
 	var gzipBuf bytes.Buffer
 	w := gzip.NewWriter(&gzipBuf)
 	_, err = w.Write(marshal)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("w.Write: %w", err)
 	}
 	_ = w.Close()
 	return gzipBuf.Bytes(), nil

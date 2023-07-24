@@ -17,27 +17,28 @@ import (
 )
 
 func main() {
-	log := logging.Init()
 	cfg, err := config.New()
 	if err != nil {
-		log.Fatal(err)
+		panic(fmt.Errorf("unable to load config: %w", err))
+	}
+	log, err := logging.New(cfg.Logger)
+	if err != nil {
+		panic(fmt.Errorf("unable to configure logger: %w", err))
 	}
 
 	log.Info("connecting to postgres...")
 	pgPool, err := postgres.New(cfg.DSN, 5, log)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("unable to connect to postgres: %w", err))
 	}
 	defer pgPool.Close()
 	log.Info("successfully connected")
 
 	if cfg.NeedToGenerateData {
-		t := time.Now()
 		err = pg_geo_table_generator.Run(pgPool)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(fmt.Errorf("unable to generate table data for postgres: %w", err))
 		}
-		log.Info(time.Since(t))
 	}
 
 	log.Info("connecting to sqlite...")
@@ -45,18 +46,16 @@ func main() {
 		strings.ReplaceAll(time.Now().Format(time.DateTime), ":", "-"))
 	db, err := sql.Open("sqlite3", sqliteFilename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("unable to connect to sqlite: %w", err))
 	}
 	defer db.Close()
 	log.Info("successfully connected")
 
 	log.Info("converting data...")
-	t := time.Now()
 	converter := service.NewConverter(pg.NewRepo(pgPool), sqliterepo.NewRepo(db))
 	err = converter.Convert(context.Background(), cfg.ConverterOpts, cfg.Metadata)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("unable to convert data: %w", err))
 	}
-	log.Info(time.Since(t))
-	log.Info("done")
+	log.Info("successfully converted")
 }
