@@ -19,6 +19,7 @@ type (
 	DB struct {
 		DSN       string `yaml:"dsn"`
 		TableName string `yaml:"table_name"`
+		RowsNames string `yaml:"rows_names"`
 	}
 	Metadata struct {
 		Name    string `yaml:"name"`

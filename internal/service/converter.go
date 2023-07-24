@@ -17,7 +17,7 @@ import (
 
 // Converter represents converters
 type Converter interface {
-	Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error
+	Convert(ctx context.Context, cfg config.Config) error
 }
 
 type converter struct {
@@ -124,29 +124,29 @@ func (c *converter) convertHelper(ctx context.Context, points []entity.MapPoint,
 }
 
 // Convert converts the geo object information from PostgreSQL to MBtiles vector format
-func (c *converter) Convert(ctx context.Context, opts config.ConverterOpts, meta config.Metadata) error {
+func (c *converter) Convert(ctx context.Context, cfg config.Config) error {
 	err := c.sqliteRepo.CreateTables(ctx)
 	if err != nil {
 		return fmt.Errorf("c.sqliteRepo.CreateTables: %w", err)
 	}
-	err = c.sqliteRepo.FillMetadata(ctx, entity.NewMetadata(meta))
+	err = c.sqliteRepo.FillMetadata(ctx, entity.NewMetadata(cfg.Metadata))
 	if err != nil {
 		return fmt.Errorf("c.sqliteRepo.FillMetadata: %w", err)
 	}
 	offset := 0
-	for offset < opts.ConvertLimit {
-		points, err := c.pgRepo.GetNElements(ctx, opts.BatchSize, offset)
+	for offset < cfg.ConverterOpts.ConvertLimit {
+		points, err := c.pgRepo.GetNElements(ctx, cfg.DB.TableName, cfg.DB.RowsNames, cfg.ConverterOpts.BatchSize, offset)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}
 			return fmt.Errorf("c.pgRepo.GetNElements: %w", err)
 		}
-		err = c.convertHelper(ctx, points, opts.StartZoom, opts.EndZoom)
+		err = c.convertHelper(ctx, points, cfg.ConverterOpts.StartZoom, cfg.ConverterOpts.EndZoom)
 		if err != nil {
 			return fmt.Errorf("c.convertHelper: %w", err)
 		}
-		offset += opts.BatchSize
+		offset += cfg.ConverterOpts.BatchSize
 	}
 	return nil
 }

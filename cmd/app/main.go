@@ -53,7 +53,7 @@ func main() {
 
 	log.Info("converting data...")
 	converter := service.NewConverter(pg.NewRepo(pgPool), sqliterepo.NewRepo(db))
-	err = converter.Convert(context.Background(), cfg.ConverterOpts, cfg.Metadata)
+	err = converter.Convert(context.Background(), cfg)
 	if err != nil {
 		log.Fatal(fmt.Errorf("unable to convert data: %w", err))
 	}

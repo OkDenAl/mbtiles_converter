@@ -12,7 +12,7 @@ import (
 // Repository represent the methods for PostgreSQL database
 type Repository interface {
 	// GetNElements returns N elements from PostgreSQL table with offset
-	GetNElements(ctx context.Context, n, offset int) ([]entity.MapPoint, error)
+	GetNElements(ctx context.Context, tableName, rowsNames string, n, offset int) ([]entity.MapPoint, error)
 }
 
 type repo struct {
@@ -24,8 +24,8 @@ func NewRepo(conn *pgxpool.Pool) Repository {
 	return &repo{conn: conn}
 }
 
-func (r *repo) GetNElements(ctx context.Context, n, offset int) ([]entity.MapPoint, error) {
-	q := `SELECT longitude,latitude,type FROM geo_objects LIMIT $1 OFFSET $2`
+func (r *repo) GetNElements(ctx context.Context, tableName, rowsNames string, n, offset int) ([]entity.MapPoint, error) {
+	q := fmt.Sprintf("SELECT %s FROM %s LIMIT $1 OFFSET $2", rowsNames, tableName)
 	rows, err := r.conn.Query(ctx, q, n, offset)
 	if err != nil {
 		return nil, fmt.Errorf("r.conn.Query with query %s: %w", q, err)
