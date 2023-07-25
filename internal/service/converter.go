@@ -42,7 +42,7 @@ func makeMapProjection(point entity.MapPoint, zoom int) (entity.TileCoords, enti
 	tilePoint := entity.TilePoint{
 		X:    math.Round((tile.Column - utils.Lon2tile(point.Longitude, zoom)) * float64(-tileSize)),
 		Y:    math.Round((tile.Row - utils.Lat2tile(point.Latitude, zoom)) * float64(-tileSize)),
-		Type: point.Type,
+		Tags: point.AdditionalRows,
 	}
 	return tile, tilePoint
 }
@@ -71,7 +71,7 @@ func addNewPointsToMVT(tileData []byte, tilePoints []entity.TilePoint) ([]byte, 
 	features := make([]mvt.Feature, len(tilePoints))
 	for i, tilePoint := range tilePoints {
 		geo := geom.Point{tilePoint.X, tilePoint.Y}
-		features[i] = mvt.Feature{Geometry: geo, Tags: map[string]interface{}{"type": tilePoint.Type}}
+		features[i] = mvt.Feature{Geometry: geo, Tags: tilePoint.Tags}
 	}
 	decodedTile.Layers[0] = decodedTile.TakeLayers()[0].AddFeatures(features...)
 	tileData, err = utils.EncodeTileToMVT(*decodedTile)

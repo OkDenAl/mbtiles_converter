@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/OkDenAl/mbtiles_converter/internal/entity"
 	"github.com/OkDenAl/mbtiles_converter/pkg/postgres"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"strings"
 )
 
 // Repository represent the methods for PostgreSQL database
@@ -32,11 +34,18 @@ func (r *repo) GetNElements(ctx context.Context, tableName, rowsNames string, n,
 	}
 	points := make([]entity.MapPoint, n)
 	c := 0
+	rowsNamesArr := strings.Split(rowsNames, ",")[2:]
 	for rows.Next() {
-		var point entity.MapPoint
-		err = rows.Scan(&point.Longitude, &point.Latitude, &point.Type)
+		values, err := rows.Values()
 		if err != nil {
-			return nil, fmt.Errorf("rows.Scan: %w", err)
+			return nil, fmt.Errorf("rows.Values: %w", err)
+		}
+		lon, _ := values[0].(pgtype.Numeric).Float64Value()
+		lat, _ := values[1].(pgtype.Numeric).Float64Value()
+		point := entity.MapPoint{Longitude: lon.Float64, Latitude: lat.Float64, AdditionalRows: make(map[string]any)}
+		values = values[2:]
+		for i, rowName := range rowsNamesArr {
+			point.AdditionalRows[rowName] = values[i]
 		}
 		points[c] = point
 		c++

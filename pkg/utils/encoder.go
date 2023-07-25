@@ -17,7 +17,7 @@ func EncodePixelCoordToGzipMVT(tilePoints []entity.TilePoint, zoom int) ([]byte,
 	features := make([]mvt.Feature, len(tilePoints))
 	for i, tilePoint := range tilePoints {
 		geo := geom.Point{tilePoint.X, tilePoint.Y}
-		features[i] = mvt.Feature{Geometry: geo, Tags: map[string]interface{}{"type": tilePoint.Type}}
+		features[i] = mvt.Feature{Geometry: geo, Tags: tilePoint.Tags}
 	}
 	l.AddFeatures(features...)
 	l.SetExtent(1 << zoom)

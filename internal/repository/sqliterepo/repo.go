@@ -52,7 +52,7 @@ func (r *repo) AddTilesBatch(ctx context.Context, mbtilesPoints []entity.Mbtiles
 	if err != nil {
 		return fmt.Errorf("r.conn.ExecContext with query `%s`: %w", stmt, err)
 	}
-	return fmt.Errorf("r.conn.ExecContext: %w", err)
+	return nil
 }
 
 func (r *repo) CreateTables(ctx context.Context) error {

@@ -1,11 +1,13 @@
 package entity
 
-// MapPoint represented the data in PostgreSQL table (you can change this for your database BUT
-// Longitude and Latitude always must come first)
+// MapPoint represented the data in PostgreSQL table
 type MapPoint struct {
-	Longitude float64
-	Latitude  float64
-	Type      string
+	Longitude      float64
+	Latitude       float64
+	AdditionalRows map[string]any
+}
+
+type AdditionalRows struct {
 }
 
 // MbtilesMapPoint represented the data in SQLite table
@@ -20,5 +22,5 @@ type MbtilesMapPoint struct {
 type TilePoint struct {
 	X    float64
 	Y    float64
-	Type string
+	Tags map[string]any
 }

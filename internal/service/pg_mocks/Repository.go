@@ -15,7 +15,7 @@ type Repository struct {
 }
 
 // GetNElements provides a mock function with given fields: ctx, n, offset
-func (_m *Repository) GetNElements(ctx context.Context, n int, offset int) ([]entity.MapPoint, error) {
+func (_m *Repository) GetNElements(ctx context.Context, tableName, rowsNames string, n, offset int) ([]entity.MapPoint, error) {
 	ret := _m.Called(ctx, n, offset)
 
 	var r0 []entity.MapPoint

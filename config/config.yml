@@ -5,13 +5,14 @@ need_to_generate_data: false # if u need to generate random points to postgres u
 db:
   dsn: postgres://mbtiles:mbtiles@pg:5432/geo # connection string to postgres bd with initial geo points
   table_name: geo_objects # spec the postgres table name
-  rows_names: longitude,latitude,type # spec the table row names with division by ","
+  rows_names: longitude,latitude,type # spec the table row names with division by ",". Longitude and latitude MUST be
+  # the first and the second rows in the table. Other rows MUST be string fields
 
 converter_opts:
   batch_size: 10000 # amount of 1 data batch size to convert
   start_zoom: 7 # start zoom from which geo objects will be visible
   end_zoom: 12 # end zoom from which geo objects will be visible
-  convert_limit: 100000 # max size of table rows available for conversion
+  convert_limit: 10000 # max size of table rows available for conversion
 
 # read more https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md
 metadata:
